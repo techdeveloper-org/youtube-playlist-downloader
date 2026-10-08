@@ -13,6 +13,9 @@ class MockView:
     def toggle_ui_state(self, enabled):
         self.toggled_state = enabled
 
+    def toggle_ui_state_safely(self, enabled):
+        self.toggled_state = enabled
+
     def update_progress_safely(self, task_id, url, percent, status_msg):
         self.updates.append((task_id, url, percent, status_msg))
 
@@ -55,7 +58,7 @@ def test_controller_cancel_all():
         output_dir="/tmp",
         cookies_file="/tmp/cookies.txt"
     )
-    controller.start_downloads(config, ["http://test"])
+    controller.start_downloads(config, [("Test Title", "http://test")])
     
     # Give orchestrator thread a moment to spawn
     time.sleep(0.1)

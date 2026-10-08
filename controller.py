@@ -1,7 +1,7 @@
 import threading
 import uuid
 import time
-from typing import List, Callable, Optional
+from typing import List, Callable, Optional, Tuple
 from concurrent.futures import ThreadPoolExecutor
 
 from model import DownloadConfig, PlaylistState
@@ -30,7 +30,7 @@ class DownloaderController:
         while time.time() < end and not cancel_event.is_set():
             time.sleep(0.2)
 
-    def start_downloads(self, config: DownloadConfig, urls: List[str]) -> None:
+    def start_downloads(self, config: DownloadConfig, items: List[Tuple[str, str]]) -> None:
         if config.max_concurrent <= 0:
             raise ValueError("max_concurrent must be > 0")
             
@@ -40,8 +40,8 @@ class DownloaderController:
                 self.cancel_event.set()
                 self.executor.shutdown(wait=False, cancel_futures=True)
                 
-            # 2. Handle empty URL list cleanly
-            if not urls:
+            # 2. Handle empty list cleanly
+            if not items:
                 self._executor_active = False
                 self._current_run_id = None
                 self.model.reset()
@@ -52,12 +52,12 @@ class DownloaderController:
             self.executor = ThreadPoolExecutor(max_workers=config.max_concurrent)
             self._executor_active = True
             self._current_run_id = str(uuid.uuid4())
-            self._active_tasks_count = len(urls)
+            self._active_tasks_count = len(items)
             
             # Start the orchestrator thread
             threading.Thread(
                 target=self._orchestrator_thread,
-                args=(config, urls, self.cancel_event, self._current_run_id),
+                args=(config, items, self.cancel_event, self._current_run_id),
                 daemon=True
             ).start()
 
@@ -75,21 +75,21 @@ class DownloaderController:
             self.model.set_status(task_id, "canceled")
             self._notify_view(task_id, None, "Canceled")
         
-        self.view.toggle_ui_state(True)
+        self.view.toggle_ui_state_safely(True)
 
-    def _orchestrator_thread(self, config: DownloadConfig, urls: List[str], cancel_event: threading.Event, run_id: str) -> None:
-        batch_size = 5
-        for idx, url in enumerate(urls):
+    def _orchestrator_thread(self, config: DownloadConfig, items: List[Tuple[str, str]], cancel_event: threading.Event, run_id: str) -> None:
+        batch_size = config.max_concurrent
+        for idx, (title, url) in enumerate(items):
             if cancel_event.is_set() or run_id != self._current_run_id:
                 break
                 
-            task_id = self.model.add_task(url)
+            task_id = self.model.add_task(url, title)
             self._notify_view(task_id, 0.0, "Queued...")
             
             self.executor.submit(self._worker_task, task_id, url, config, cancel_event, run_id)
             
             # Short delay between submissions
-            if idx < len(urls) - 1:
+            if idx < len(items) - 1:
                 short_delay = config.short_delay
                 if config.use_random:
                     import random
@@ -97,7 +97,7 @@ class DownloaderController:
                 self._sleep_with_cancel(short_delay, cancel_event)
 
             # Wait time between batches
-            if (idx + 1) % batch_size == 0 and idx < len(urls) - 1:
+            if (idx + 1) % batch_size == 0 and idx < len(items) - 1:
                 wait_time = config.wait_time
                 if config.use_random:
                     wait_time = get_random_delay(wait_time // 60) * 60 # get_random_delay returns seconds
@@ -106,8 +106,9 @@ class DownloaderController:
     def _notify_view(self, task_id: str, percent: Optional[float], status_msg: str) -> None:
         """Safely dispatches UI updates to the main thread."""
         # CustomTkinter after() is thread-safe
-        url = self.model.urls.get(task_id, "Unknown URL")
-        self.view.update_progress_safely(task_id, url, percent, status_msg)
+        with self.model.lock:
+            title = self.model.titles.get(task_id, "Unknown Video")
+        self.view.update_progress_safely(task_id, title, percent, status_msg)
 
     def _worker_task(self, task_id: str, url: str, config: DownloadConfig, cancel_event: threading.Event, run_id: str) -> None:
         if run_id != self._current_run_id:
@@ -123,7 +124,7 @@ class DownloaderController:
         self._notify_view(task_id, 0.0, "Extracting info...")
         
         try:
-            info, error = extract_direct_download_info(url, config.format_choice, config.quality_choice, config.cookies_file)
+            info, error = extract_direct_download_info(url, config.format_choice, config.quality_choice, config.cookies_file, cancel_event)
             if error or not info:
                 self.model.set_status(task_id, "failed")
                 self._notify_view(task_id, None, f"Failed: {error}")
@@ -167,4 +168,4 @@ class DownloaderController:
                 if self.executor is not None:
                     self.executor.shutdown(wait=False)
                 # Re-enable UI
-                self.view.toggle_ui_state(True)
+                self.view.toggle_ui_state_safely(True)

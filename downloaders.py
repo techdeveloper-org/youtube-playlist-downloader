@@ -32,9 +32,9 @@ class DownloaderStrategy(ABC):
         pass
 
 
-def _head_content_length(url: str, timeout: int = 30) -> Optional[int]:
+def _head_content_length(url: str, timeout: int = 30, headers: Optional[dict] = None) -> Optional[int]:
     try:
-        r = requests.head(url, allow_redirects=True, timeout=timeout)
+        r = requests.head(url, allow_redirects=True, timeout=timeout, headers=headers)
         if r.status_code >= 400:
             return None
         cl = r.headers.get('Content-Length') or r.headers.get('content-length')
@@ -70,10 +70,12 @@ class PythonDownloader(DownloaderStrategy):
     """
     
     def _download_chunk(self, url: str, start: int, end: int, chunk_id: int, 
-                        temp_folder: str, progress_dict: dict, cancel_event: threading.Event) -> tuple:
+                        temp_folder: str, progress_dict: dict, cancel_event: threading.Event,
+                        headers: Optional[dict] = None) -> tuple:
         try:
-            headers = {'Range': f'bytes={start}-{end}'}
-            response = requests.get(url, headers=headers, timeout=(10, 60), stream=True)
+            req_headers = headers.copy() if headers else {}
+            req_headers['Range'] = f'bytes={start}-{end}'
+            response = requests.get(url, headers=req_headers, timeout=(10, 60), stream=True)
             response.raise_for_status()
 
             chunk_path = os.path.join(temp_folder, f"chunk_{chunk_id}.part")
@@ -93,16 +95,17 @@ class PythonDownloader(DownloaderStrategy):
                                 header_desc: str, task_id: str, 
                                 progress_callback: Callable[[str, float, str], None],
                                 cancel_event: threading.Event, total_override: Optional[int] = None,
-                                initial_downloaded: int = 0, overall_total: Optional[int] = None) -> bool:
+                                initial_downloaded: int = 0, overall_total: Optional[int] = None,
+                                headers: Optional[dict] = None) -> bool:
         """Downloads a single URL (either chunked or sequential)."""
-        total = total_override or _head_content_length(url)
+        total = total_override or _head_content_length(url, headers=headers)
         # Use provided overall_total for percent calculation if present, otherwise total
         calc_total = overall_total if overall_total else total
 
         supports_ranges = False
         if use_chunks and total and total > 2 * 1024 * 1024:
             try:
-                r = requests.head(url, allow_redirects=True, timeout=(5, 10))
+                r = requests.head(url, headers=headers, allow_redirects=True, timeout=(5, 10))
                 if r.headers.get('Accept-Ranges', '') == 'bytes' or 'googlevideo.com' in url:
                     supports_ranges = True
             except Exception:
@@ -127,7 +130,7 @@ class PythonDownloader(DownloaderStrategy):
                 start_byte = i * chunk_size
                 end_byte = start_byte + chunk_size - 1 if i < num_chunks - 1 else total - 1
                 chunk_progress[i] = 0
-                chunk_tasks.append((url, start_byte, end_byte, i, temp_dir, chunk_progress, cancel_event))
+                chunk_tasks.append((url, start_byte, end_byte, i, temp_dir, chunk_progress, cancel_event, headers))
 
             chunk_results = {}
             progress_running = True
@@ -193,7 +196,7 @@ class PythonDownloader(DownloaderStrategy):
         
         # Normal sequential fallback
         try:
-            with requests.get(url, stream=True, timeout=(10, 120)) as r:
+            with requests.get(url, headers=headers, stream=True, timeout=(10, 120)) as r:
                 r.raise_for_status()
                 if not total:
                     cl = r.headers.get('Content-Length') or r.headers.get('content-length')
@@ -219,7 +222,8 @@ class PythonDownloader(DownloaderStrategy):
                             status_msg = f"{human_bytes(total_downloaded)}/{human_bytes(calc_total)} at {mbps:.2f} Mbps"
                             progress_callback(task_id, percent, status_msg)
             return True
-        except Exception:
+        except Exception as e:
+            print(f"OUTER DOWN ERR: {e}")
             if os.path.exists(target_path):
                 try: os.remove(target_path)
                 except: pass
@@ -238,25 +242,28 @@ class PythonDownloader(DownloaderStrategy):
             v_tmp = os.path.join(temp_dir, f"tmp_v_{uid}.{info.get('video_ext', 'mp4')}")
             a_tmp = os.path.join(temp_dir, f"tmp_a_{uid}.{info.get('audio_ext', 'm4a')}")
             
-            v_size = _head_content_length(info["video_url"]) or 0
-            a_size = _head_content_length(info["audio_url"]) or 0
+            headers = info.get("http_headers", {})
+            v_size = _head_content_length(info["video_url"], headers=headers) or 0
+            a_size = _head_content_length(info["audio_url"], headers=headers) or 0
             total_size = v_size + a_size if (v_size + a_size) > 0 else None
 
             try:
                 # Video
                 progress_callback(task_id, 0, "Starting video download...")
+                print(f"DEBUG HEADERS: {headers}")
                 v_ok = self._download_single_stream(
                     info["video_url"], v_tmp, True, "Video stream", task_id, progress_callback,
-                    cancel_event, total_override=v_size, overall_total=total_size
+                    cancel_event, total_override=v_size, overall_total=total_size, headers=headers
                 )
                 if not v_ok or cancel_event.is_set():
                     return False
                 
                 # Audio
                 progress_callback(task_id, (v_size/total_size*100) if total_size else 50, "Starting audio download...")
+                print(f"DEBUG HEADERS: {headers}")
                 a_ok = self._download_single_stream(
                     info["audio_url"], a_tmp, True, "Audio stream", task_id, progress_callback,
-                    cancel_event, total_override=a_size, initial_downloaded=v_size, overall_total=total_size
+                    cancel_event, total_override=a_size, initial_downloaded=v_size, overall_total=total_size, headers=headers
                 )
                 if not a_ok or cancel_event.is_set():
                     return False
@@ -269,8 +276,13 @@ class PythonDownloader(DownloaderStrategy):
                     "-c:v", "copy", "-c:a", "copy",
                     output_path
                 ]
-                result = subprocess.run(ffmpeg_cmd, capture_output=True, text=True, timeout=300)
-                return result.returncode == 0
+                proc = subprocess.Popen(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                while proc.poll() is None:
+                    if cancel_event.is_set():
+                        proc.terminate()
+                        return False
+                    _t.sleep(0.1)
+                return proc.returncode == 0
                 
             finally:
                 if os.path.exists(v_tmp):
@@ -281,10 +293,12 @@ class PythonDownloader(DownloaderStrategy):
                     except: pass
         else:
             # Single stream
+            headers = info.get("http_headers", {})
             progress_callback(task_id, 0, "Starting download...")
+            print(f"DEBUG HEADERS: {headers}")
             return self._download_single_stream(
                 info["direct_url"], output_path, True, "Stream", task_id, progress_callback,
-                cancel_event
+                cancel_event, headers=headers
             )
 
 
@@ -297,7 +311,7 @@ class IDMDownloader(DownloaderStrategy):
         if not idm_path or not os.path.exists(idm_path):
             return False
             
-        cmd = [idm_path, "/d", url, "/p", out_folder, "/f", filename]
+        cmd = [idm_path, "/d", url, "/p", out_folder, "/f", filename, "/n", "/a"]
         try:
             subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             _t.sleep(0.5)
@@ -306,7 +320,8 @@ class IDMDownloader(DownloaderStrategy):
             except Exception:
                 pass
             return True
-        except Exception:
+        except Exception as e:
+            print(f"MAIN DOWN ERROR: {e}")
             return False
 
     def download(self, info: dict, config: DownloadConfig, task_id: str,

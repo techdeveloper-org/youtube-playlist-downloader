@@ -17,36 +17,44 @@ def is_playlist_url(url: str) -> bool:
     return 'list=' in url and 'youtube.com' in url
 
 
-def extract_playlist_info(url: str) -> Tuple[str, List[str]]:
-    """Extract video URLs from either a playlist or single video URL"""
-    # Check if it's a playlist or single video
+def _run_with_cancellation(cmd: List[str], cancel_event=None) -> Tuple[int, str, str]:
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    while proc.poll() is None:
+        if cancel_event and cancel_event.is_set():
+            proc.terminate()
+            return -1, "", "Canceled"
+        import time; time.sleep(0.1)
+    stdout, stderr = proc.communicate()
+    return proc.returncode, stdout, stderr
+
+def extract_playlist_info(url: str, cancel_event=None) -> Tuple[str, List[Tuple[str, str]]]:
+    """Extract video titles and URLs from either a playlist or single video URL"""
     if is_playlist_url(url):
-        # Playlist extraction
-        proc = subprocess.run([
-            "yt-dlp", "--flat-playlist", "--dump-single-json", url
-        ], capture_output=True, text=True, check=False)
-        if proc.returncode != 0:
-            raise RuntimeError(proc.stderr.strip() or "yt-dlp failed to extract playlist info")
-        data = json.loads(proc.stdout)
+        code, stdout, stderr = _run_with_cancellation(["yt-dlp", "--flat-playlist", "--dump-single-json", url], cancel_event)
+        if code != 0:
+            raise RuntimeError(stderr.strip() or "yt-dlp failed to extract playlist info")
+        data = json.loads(stdout)
         title = data.get("title", "Playlist")
-        urls = [f"https://www.youtube.com/watch?v={e['id']}" for e in data.get("entries", []) if 'id' in e]
-        return title, urls
+        
+        items = []
+        for e in data.get("entries", []):
+            v_url = e.get("url") or (f"https://www.youtube.com/watch?v={e['id']}" if 'id' in e else None)
+            if v_url:
+                video_title = e.get("title", f"Video {e.get('id', 'unknown')}")
+                items.append((video_title, v_url))
+        return title, items
     else:
-        # Single video - extract video info to get title
-        proc = subprocess.run([
-            "yt-dlp", "--dump-single-json", "--no-playlist", url
-        ], capture_output=True, text=True, check=False)
-        if proc.returncode != 0:
-            raise RuntimeError(proc.stderr.strip() or "yt-dlp failed to extract video info")
-        data = json.loads(proc.stdout)
+        code, stdout, stderr = _run_with_cancellation(["yt-dlp", "--dump-single-json", "--no-playlist", url], cancel_event)
+        if code != 0:
+            raise RuntimeError(stderr.strip() or "yt-dlp failed to extract video info")
+        data = json.loads(stdout)
         title = data.get("title", "Video")
-        # For single video, return it in a list with the title as folder name
         video_url = data.get("webpage_url") or data.get("url") or url
-        return title, [video_url]
+        return title, [(title, video_url)]
 
 
 def extract_direct_download_info(video_url: str, format_choice: str, quality_choice: Optional[str] = None,
-                                 cookiefile: Optional[str] = None) -> Tuple[Optional[Dict], Optional[str]]:
+                                 cookiefile: Optional[str] = None, cancel_event=None) -> Tuple[Optional[Dict], Optional[str]]:
     ydl_opts = {"skip_download": True, "quiet": True}
     if cookiefile:
         ydl_opts["cookiefile"] = cookiefile
@@ -54,6 +62,7 @@ def extract_direct_download_info(video_url: str, format_choice: str, quality_cho
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(video_url, download=False)
             formats = info.get("formats") or []
+            base_headers = info.get("http_headers", {})
             if format_choice == "1":
                 fmt = select_audio_format(formats, quality_choice)
                 if not fmt:
@@ -67,7 +76,8 @@ def extract_direct_download_info(video_url: str, format_choice: str, quality_cho
                     "bitrate": bitrate_info,
                     "vcodec": "none",
                     "acodec": fmt.get("acodec"),
-                    "needs_merge": False
+                    "needs_merge": False,
+                    "http_headers": fmt.get("http_headers", base_headers)
                 }, None
             elif format_choice == "2":
                 fmt = select_video_format(formats, quality_choice or "3")
@@ -81,7 +91,8 @@ def extract_direct_download_info(video_url: str, format_choice: str, quality_cho
                     "resolution": f"{fmt.get('height')}p" if fmt.get('height') else "unknown",
                     "vcodec": fmt.get("vcodec"),
                     "acodec": "none",
-                    "needs_merge": False
+                    "needs_merge": False,
+                    "http_headers": fmt.get("http_headers", base_headers)
                 }, None
             else:
                 # Video+Audio format
@@ -117,7 +128,8 @@ def extract_direct_download_info(video_url: str, format_choice: str, quality_cho
                             "vcodec": video_fmt.get("vcodec"),
                             "acodec": audio_fmt.get("acodec"),
                             "resolution": f"{video_fmt.get('height')}p" if video_fmt.get('height') else "unknown",
-                            "needs_merge": True
+                            "needs_merge": True,
+                            "http_headers": video_fmt.get("http_headers", base_headers)
                         }, None
                     else:
                         # Fallback to combined format if separate streams not available
@@ -131,7 +143,8 @@ def extract_direct_download_info(video_url: str, format_choice: str, quality_cho
                                 "resolution": f"{fmt.get('height')}p" if fmt.get('height') else "unknown",
                                 "vcodec": fmt.get("vcodec"),
                                 "acodec": fmt.get("acodec"),
-                                "needs_merge": False
+                                "needs_merge": False,
+                                "http_headers": fmt.get("http_headers", base_headers)
                             }, None
                         else:
                             return None, "Cannot find suitable video/audio streams"
@@ -147,7 +160,8 @@ def extract_direct_download_info(video_url: str, format_choice: str, quality_cho
                             "resolution": f"{fmt.get('height')}p" if fmt.get('height') else "unknown",
                             "vcodec": fmt.get("vcodec"),
                             "acodec": fmt.get("acodec"),
-                            "needs_merge": False
+                            "needs_merge": False,
+                            "http_headers": fmt.get("http_headers", base_headers)
                         }, None
                     else:
                         # Fallback to separate streams
@@ -176,7 +190,8 @@ def extract_direct_download_info(video_url: str, format_choice: str, quality_cho
                             "vcodec": video_fmt.get("vcodec"),
                             "acodec": audio_fmt.get("acodec"),
                             "resolution": f"{video_fmt.get('height')}p" if video_fmt.get('height') else "unknown",
-                            "needs_merge": True
+                            "needs_merge": True,
+                            "http_headers": video_fmt.get("http_headers", base_headers)
                         }, None
     except Exception as e:
         return None, str(e)

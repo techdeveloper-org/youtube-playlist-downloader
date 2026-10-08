@@ -29,16 +29,18 @@ class PlaylistState:
         """
         self.tasks: List[str] = []
         self.urls: Dict[str, str] = {}
+        self.titles: Dict[str, str] = {}
         self.status: Dict[str, str] = {}
         self.progress: Dict[str, float] = {}
         self.lock = threading.Lock()
 
-    def add_task(self, url: str) -> str:
+    def add_task(self, url: str, title: str = "Unknown") -> str:
         """
         Adds a new URL to the playlist and returns a uniquely generated task ID.
 
         Args:
             url (str): The target URL to download.
+            title (str): The video title.
 
         Returns:
             str: A unique UUID string representing the task.
@@ -47,6 +49,7 @@ class PlaylistState:
         with self.lock:
             self.tasks.append(task_id)
             self.urls[task_id] = url
+            self.titles[task_id] = title
             self.status[task_id] = "pending"
             self.progress[task_id] = 0.0
         return task_id
@@ -87,5 +90,6 @@ class PlaylistState:
         with self.lock:
             self.tasks.clear()
             self.urls.clear()
+            self.titles.clear()
             self.status.clear()
             self.progress.clear()

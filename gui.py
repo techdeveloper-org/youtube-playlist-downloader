@@ -17,7 +17,7 @@ except ImportError:
     import customtkinter as ctk
 
 from tkinter import filedialog, messagebox
-from typing import Optional, Dict
+from typing import Optional, Dict, Tuple
 
 from model import DownloadConfig
 from utils import now
@@ -77,13 +77,13 @@ class DownloaderView:
         self.setup_right_panel(right_panel)
 
     def setup_left_panel(self, parent):
-        scroll_frame = ctk.CTkScrollableFrame(parent, label_text="⚙️ Settings")
+        scroll_frame = ctk.CTkScrollableFrame(parent, label_text=" Settings")
         scroll_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
         # Title
         title_label = ctk.CTkLabel(
             scroll_frame,
-            text="🔗 YouTube Playlist\nDownloader",
+            text=" YouTube Playlist\nDownloader",
             font=ctk.CTkFont(size=20, weight="bold"),
             justify="center"
         )
@@ -118,7 +118,7 @@ class DownloaderView:
 
         browse_btn = ctk.CTkButton(
             folder_frame,
-            text="📁",
+            text="",
             command=self.browse_folder,
             width=40,
             height=35,
@@ -130,7 +130,7 @@ class DownloaderView:
         sep1.pack(fill="x", padx=5, pady=15)
 
         # Mode Selection
-        mode_label = ctk.CTkLabel(scroll_frame, text="🧠 Mode Selection:", font=ctk.CTkFont(size=14, weight="bold"))
+        mode_label = ctk.CTkLabel(scroll_frame, text=" Mode Selection:", font=ctk.CTkFont(size=14, weight="bold"))
         mode_label.pack(anchor="w", padx=5, pady=(5, 10))
 
         auto_radio = ctk.CTkRadioButton(
@@ -157,7 +157,7 @@ class DownloaderView:
         self.manual_settings_frame = ctk.CTkFrame(scroll_frame, fg_color="gray20")
 
         # Speed Profile
-        speed_label = ctk.CTkLabel(self.manual_settings_frame, text="⚡ Speed Profile:", font=ctk.CTkFont(size=12, weight="bold"))
+        speed_label = ctk.CTkLabel(self.manual_settings_frame, text=" Speed Profile:", font=ctk.CTkFont(size=12, weight="bold"))
         speed_label.pack(anchor="w", padx=10, pady=(10, 5))
 
         speed_menu = ctk.CTkOptionMenu(
@@ -169,7 +169,7 @@ class DownloaderView:
         speed_menu.pack(fill="x", padx=10, pady=(0, 10))
 
         # Format Selection
-        format_label = ctk.CTkLabel(self.manual_settings_frame, text="📋 Format:", font=ctk.CTkFont(size=12, weight="bold"))
+        format_label = ctk.CTkLabel(self.manual_settings_frame, text=" Format:", font=ctk.CTkFont(size=12, weight="bold"))
         format_label.pack(anchor="w", padx=10, pady=(5, 5))
 
         format_menu = ctk.CTkOptionMenu(
@@ -182,7 +182,7 @@ class DownloaderView:
         format_menu.pack(fill="x", padx=10, pady=(0, 10))
 
         # Quality Selection
-        quality_label = ctk.CTkLabel(self.manual_settings_frame, text="🎥 Quality:", font=ctk.CTkFont(size=12, weight="bold"))
+        quality_label = ctk.CTkLabel(self.manual_settings_frame, text=" Quality:", font=ctk.CTkFont(size=12, weight="bold"))
         quality_label.pack(anchor="w", padx=10, pady=(5, 5))
 
         self.quality_menu = ctk.CTkOptionMenu(
@@ -194,7 +194,7 @@ class DownloaderView:
         self.quality_menu.pack(fill="x", padx=10, pady=(0, 10))
 
         # Download Method
-        method_label = ctk.CTkLabel(self.manual_settings_frame, text="⬇️ Method:", font=ctk.CTkFont(size=12, weight="bold"))
+        method_label = ctk.CTkLabel(self.manual_settings_frame, text=" Method:", font=ctk.CTkFont(size=12, weight="bold"))
         method_label.pack(anchor="w", padx=10, pady=(5, 5))
 
         method_menu = ctk.CTkOptionMenu(
@@ -208,14 +208,14 @@ class DownloaderView:
         # Random Delays
         random_check = ctk.CTkCheckBox(
             self.manual_settings_frame,
-            text="🎲 Random Delays",
+            text=" Random Delays",
             variable=self.random_delays_var,
             font=ctk.CTkFont(size=11)
         )
         random_check.pack(anchor="w", padx=10, pady=(5, 10))
 
         # Batch Size
-        batch_label = ctk.CTkLabel(self.manual_settings_frame, text="📦 Batch Size:", font=ctk.CTkFont(size=12, weight="bold"))
+        batch_label = ctk.CTkLabel(self.manual_settings_frame, text=" Batch Size:", font=ctk.CTkFont(size=12, weight="bold"))
         batch_label.pack(anchor="w", padx=10, pady=(5, 5))
 
         batch_entry = ctk.CTkEntry(
@@ -233,7 +233,7 @@ class DownloaderView:
         # Control Buttons
         self.start_btn = ctk.CTkButton(
             scroll_frame,
-            text="🚀 Start Download",
+            text=" Start Download",
             command=self.start_download,
             height=45,
             font=ctk.CTkFont(size=15, weight="bold"),
@@ -244,7 +244,7 @@ class DownloaderView:
 
         self.cancel_btn = ctk.CTkButton(
             scroll_frame,
-            text="⛔ Cancel",
+            text=" Cancel",
             command=self.cancel_download,
             height=45,
             font=ctk.CTkFont(size=15, weight="bold"),
@@ -264,7 +264,7 @@ class DownloaderView:
         overall_frame = ctk.CTkFrame(parent)
         overall_frame.grid(row=0, column=0, padx=10, pady=(10, 5), sticky="ew")
 
-        overall_title = ctk.CTkLabel(overall_frame, text="📊 Overall Progress", font=ctk.CTkFont(size=16, weight="bold"))
+        overall_title = ctk.CTkLabel(overall_frame, text=" Overall Progress", font=ctk.CTkFont(size=16, weight="bold"))
         overall_title.pack(anchor="w", padx=15, pady=(10, 5))
 
         self.overall_label = ctk.CTkLabel(
@@ -282,7 +282,7 @@ class DownloaderView:
         files_frame = ctk.CTkFrame(parent)
         files_frame.grid(row=1, column=0, padx=10, pady=5, sticky="nsew")
 
-        files_title = ctk.CTkLabel(files_frame, text="📁 Files Download Progress", font=ctk.CTkFont(size=16, weight="bold"))
+        files_title = ctk.CTkLabel(files_frame, text=" Files Download Progress", font=ctk.CTkFont(size=16, weight="bold"))
         files_title.pack(anchor="w", padx=15, pady=(10, 5))
 
         self.files_stats_label = ctk.CTkLabel(
@@ -308,7 +308,7 @@ class DownloaderView:
         log_frame = ctk.CTkFrame(parent)
         log_frame.grid(row=2, column=0, padx=10, pady=(5, 10), sticky="nsew")
 
-        log_title = ctk.CTkLabel(log_frame, text="📝 Logs", font=ctk.CTkFont(size=16, weight="bold"))
+        log_title = ctk.CTkLabel(log_frame, text=" Logs", font=ctk.CTkFont(size=16, weight="bold"))
         log_title.pack(anchor="w", padx=15, pady=(10, 5))
 
         self.log_text = ctk.CTkTextbox(log_frame, height=120, font=ctk.CTkFont(family="Consolas", size=10))
@@ -333,7 +333,7 @@ class DownloaderView:
             self.quality_menu.configure(values=["1 - Low (≤360p)", "2 - Medium (480p-720p)", "3 - Best"])
 
     def log(self, message: str):
-        self.log_queue.put(message)
+        self.root.after(0, lambda: self.log_queue.put(message))
 
     def add_file_progress(self, file_name: str, task_id: str):
         if hasattr(self, 'files_placeholder') and self.files_placeholder.winfo_exists():
@@ -385,9 +385,20 @@ class DownloaderView:
         if not self.playlist_url_var.get().strip():
             messagebox.showerror("Error", "Please enter a playlist URL")
             return False
-        if not self.output_folder_var.get().strip():
+        
+        output_folder = self.output_folder_var.get().strip()
+        if not output_folder:
             messagebox.showerror("Error", "Please select an output folder")
             return False
+            
+        # Check cookies
+        from utils import cookies_file_is_stale
+        cookies_file = os.path.join(os.path.abspath(output_folder), "yt_cookies.txt")
+        if not os.path.exists(cookies_file) or cookies_file_is_stale(cookies_file):
+            msg = "yt_cookies.txt is missing or stale in the output folder.\n\nAge-restricted videos will fail. Do you want to continue anyway?"
+            if not messagebox.askyesno("Cookies Missing", msg):
+                return False
+                
         return True
 
     def start_download(self):
@@ -416,50 +427,80 @@ class DownloaderView:
         except:
             pass
 
-        # Parse config for controller
-        speed_map = {"1": (5*60, 2), "2": (8*60, 3), "3": (12*60, 5)}
-        speed_choice = self.speed_profile_var.get()[0]
-        wait_time, short_delay = speed_map.get(speed_choice, (8*60, 3))
-
-        config = DownloadConfig(
-            format_choice=self.format_var.get()[0],
-            quality_choice=self.quality_var.get()[0],
-            download_mode="idm" if self.method_var.get()[0] == "1" else "python",
-            wait_time=wait_time,
-            short_delay=short_delay,
-            use_random=self.random_delays_var.get(),
-            max_concurrent=batch_size,
-            output_dir=output_base,
-            cookies_file=cookies_file
-        )
-        
-        self.log(f"[{now()}] 🚀 Starting download orchestration...")
+        self.log(f"[{now()}]  Starting download orchestration...")
         
         import threading
         def _extract_and_start():
+            from speedtest_utils import measure_network_speed, auto_select_settings
             from extractor import extract_playlist_info
-            all_video_urls = []
-            for url in urls:
-                try:
-                    self.log(f"[{now()}] 📥 Extracting URLs from: {url}")
-                    _, extracted_urls = extract_playlist_info(url)
-                    all_video_urls.extend(extracted_urls)
-                except Exception as e:
-                    self.log(f"[{now()}] ❌ Failed to extract {url}: {e}")
             
-            if not all_video_urls:
-                self.log(f"[{now()}] ❌ No valid video URLs found.")
+            # --- Auto Mode Resolution ---
+            if self.mode_var.get() == "auto":
+                self.log(f"[{now()}]  Measuring network speed for Auto mode...")
+                mbps = measure_network_speed()
+                w_time, s_delay, u_random, f_choice, q_choice, m_choice = auto_select_settings(mbps)
+                
+                config = DownloadConfig(
+                    format_choice=f_choice,
+                    quality_choice=q_choice,
+                    download_mode="idm" if m_choice == "1" else "python",
+                    wait_time=w_time,
+                    short_delay=s_delay,
+                    use_random=u_random,
+                    max_concurrent=batch_size,
+                    output_dir=output_base,
+                    cookies_file=cookies_file
+                )
+                self.log(f"[{now()}]  Auto Mode applied: Speed={mbps or 'Unknown'}Mbps, Format={f_choice}")
+            else:
+                # Manual mode parsing
+                speed_map = {"1": (5*60, 2), "2": (8*60, 3), "3": (12*60, 5)}
+                speed_choice = self.speed_profile_var.get()[0]
+                w_time, s_delay = speed_map.get(speed_choice, (8*60, 3))
+                
+                config = DownloadConfig(
+                    format_choice=self.format_var.get()[0],
+                    quality_choice=self.quality_var.get()[0],
+                    download_mode="idm" if self.method_var.get()[0] == "1" else "python",
+                    wait_time=w_time,
+                    short_delay=s_delay,
+                    use_random=self.random_delays_var.get(),
+                    max_concurrent=batch_size,
+                    output_dir=output_base,
+                    cookies_file=cookies_file
+                )
+            
+            all_items = []
+            for url in urls:
+                if self.controller.cancel_event.is_set():
+                    self.log(f"[{now()}]  Extraction canceled.")
+                    self.toggle_ui_state(True)
+                    return
+                try:
+                    self.log(f"[{now()}]  Extracting URLs from: {url}")
+                    _, extracted_items = extract_playlist_info(url)
+                    all_items.extend(extracted_items)
+                except Exception as e:
+                    self.log(f"[{now()}]  Failed to extract {url}: {e}")
+            
+            if self.controller.cancel_event.is_set():
+                self.log(f"[{now()}]  Extraction canceled.")
                 self.toggle_ui_state(True)
                 return
                 
-            self.total_videos = len(all_video_urls)
+            if not all_items:
+                self.log(f"[{now()}]  No valid video URLs found.")
+                self.toggle_ui_state(True)
+                return
+                
+            self.total_videos = len(all_items)
             self.current_video = 0
-            self.root.after(0, lambda: self.controller.start_downloads(config, all_video_urls))
+            self.root.after(0, lambda: self.controller.start_downloads(config, all_items))
             
         threading.Thread(target=_extract_and_start, daemon=True).start()
 
     def cancel_download(self):
-        self.log(f"[{now()}] ⛔ Canceling... In-flight downloads will stop shortly...")
+        self.log(f"[{now()}]  Canceling... In-flight downloads will stop shortly...")
         self.cancel_btn.configure(state="disabled")
         self.controller.cancel_all()
 

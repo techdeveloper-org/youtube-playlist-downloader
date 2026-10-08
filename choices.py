@@ -3,6 +3,10 @@
 
 """User choices: auto/manual, format/quality, method, cookies"""
 
+import sys
+if sys.stdout.encoding.lower() != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
+
 from typing import Optional, Tuple
 
 from utils import now, cookies_file_is_stale
