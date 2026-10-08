@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "youtube-playlist-downloader"
 version = "2.0.0"
-description = "A smart YouTube playlist and video downloader for Windows with IDM & Python multi-connection support"
+description = "A robust, parallel YouTube playlist downloader with a modern GUI, smart IDM integration, 8-part native downloading, and bulletproof yt-dlp 403-bypass core."\nkeywords = ["youtube-downloader", "yt-dlp", "idm-integration", "customtkinter", "parallel-processing", "youtube-playlist", "download-manager", "anti-bot", "gui"]
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
