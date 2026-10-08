@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" type="diagram" version="24.0.0">
+  <diagram id="diagram1" name="Component Diagram">
+    <mxGraphModel dx="1422" dy="762" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+    <mxCell id="2" value="&amp;lt;&amp;lt;component&amp;gt;&amp;gt;&amp;#xa;UI Layer (gui.py)&amp;#xa;DownloaderView" style="shape=mxgraph.uml.component;html=1;whiteSpace=wrap;strokeColor=#666666;fillColor=#F5F5F5;strokeWidth=2;" vertex="1" parent="1">
+      <mxGeometry x="40" y="40" width="200" height="120" as="geometry" />
+    </mxCell>
+    <mxCell id="3" value="DownloaderView" style="ellipse;html=1;strokeColor=#000000;fillColor=#FFFFFF;strokeWidth=1;" vertex="1" parent="1">
+      <mxGeometry x="245" y="60" width="20" height="20" as="geometry" />
+    </mxCell>
+    <mxCell id="4" value="&amp;lt;&amp;lt;component&amp;gt;&amp;gt;&amp;#xa;Controller Layer&amp;#xa;DownloaderController&amp;#xa;PlaylistState" style="shape=mxgraph.uml.component;html=1;whiteSpace=wrap;strokeColor=#666666;fillColor=#F5F5F5;strokeWidth=2;" vertex="1" parent="1">
+      <mxGeometry x="320" y="40" width="200" height="120" as="geometry" />
+    </mxCell>
+    <mxCell id="5" value="DownloaderController" style="ellipse;html=1;strokeColor=#000000;fillColor=#FFFFFF;strokeWidth=1;" vertex="1" parent="1">
+      <mxGeometry x="525" y="60" width="20" height="20" as="geometry" />
+    </mxCell>
+    <mxCell id="6" value="PlaylistState" style="ellipse;html=1;strokeColor=#000000;fillColor=#FFFFFF;strokeWidth=1;" vertex="1" parent="1">
+      <mxGeometry x="525" y="100" width="20" height="20" as="geometry" />
+    </mxCell>
+    <mxCell id="7" value="&amp;lt;&amp;lt;component&amp;gt;&amp;gt;&amp;#xa;Extractor (yt-dlp)&amp;#xa;Extractor" style="shape=mxgraph.uml.component;html=1;whiteSpace=wrap;strokeColor=#666666;fillColor=#F5F5F5;strokeWidth=2;" vertex="1" parent="1">
+      <mxGeometry x="600" y="40" width="200" height="120" as="geometry" />
+    </mxCell>
+    <mxCell id="8" value="Extractor" style="ellipse;html=1;strokeColor=#000000;fillColor=#FFFFFF;strokeWidth=1;" vertex="1" parent="1">
+      <mxGeometry x="805" y="60" width="20" height="20" as="geometry" />
+    </mxCell>
+    <mxCell id="9" value="&amp;lt;&amp;lt;component&amp;gt;&amp;gt;&amp;#xa;Downloaders&amp;#xa;DownloaderStrategy&amp;#xa;PythonDownloader&amp;#xa;IDMDownloader" style="shape=mxgraph.uml.component;html=1;whiteSpace=wrap;strokeColor=#666666;fillColor=#F5F5F5;strokeWidth=2;" vertex="1" parent="1">
+      <mxGeometry x="40" y="240" width="200" height="120" as="geometry" />
+    </mxCell>
+    <mxCell id="10" value="DownloaderStrategy" style="ellipse;html=1;strokeColor=#000000;fillColor=#FFFFFF;strokeWidth=1;" vertex="1" parent="1">
+      <mxGeometry x="245" y="260" width="20" height="20" as="geometry" />
+    </mxCell>
+    <mxCell id="11" value="PythonDownloader" style="ellipse;html=1;strokeColor=#000000;fillColor=#FFFFFF;strokeWidth=1;" vertex="1" parent="1">
+      <mxGeometry x="245" y="300" width="20" height="20" as="geometry" />
+    </mxCell>
+    <mxCell id="12" value="uses" style="endArrow=open;endSize=8;html=1;strokeColor=#000000;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;" edge="1" source="2" target="4" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="13" value="uses" style="endArrow=open;endSize=8;html=1;strokeColor=#000000;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;" edge="1" source="4" target="7" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="14" value="uses" style="endArrow=open;endSize=8;html=1;strokeColor=#000000;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;" edge="1" source="4" target="9" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
