@@ -6,7 +6,7 @@ import importlib
 
 ROOT_MODULES = [
     "choices", "deps", "downloaders", "extractor", "files_io",
-    "formats", "gui", "main", "paths", "speedtest_utils", "utils", "workflow"
+    "formats", "gui", "main", "paths", "speedtest_utils", "utils", 
 ]
 
 class TestImports(unittest.TestCase):

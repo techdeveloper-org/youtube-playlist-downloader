@@ -3,7 +3,7 @@
 
 """GUI launcher for YouTube Playlist Downloader"""
 
-from gui import main
+from main import main
 
 if __name__ == "__main__":
     main()

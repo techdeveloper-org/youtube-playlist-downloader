@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""Modern GUI for YouTube Playlist Downloader using CustomTkinter"""
+"""Modern GUI for YouTube Playlist Downloader using CustomTkinter (View Layer)"""
 
 import sys
 import subprocess
-import importlib
+import os
+import queue
 
 # Auto-install customtkinter if not present
 try:
@@ -16,27 +17,20 @@ except ImportError:
     import customtkinter as ctk
 
 from tkinter import filedialog, messagebox
-import threading
-import queue
-import os
 from typing import Optional, Dict
 
-from utils import now, CANCEL_EVENT
-from choices import check_cookies
-from extractor import extract_playlist_info
-from files_io import save_urls_to_file, load_urls_from_file
-from speedtest_utils import measure_network_speed_ookla, measure_network_speed, auto_select_settings
-from paths import find_idm
-from workflow import process_batch_idm_with_monitoring, process_batches_normal
+from model import DownloadConfig
+from utils import now
 
-
-class YouTubeDownloaderGUI:
-    def __init__(self):
+class DownloaderView:
+    def __init__(self, root: ctk.CTk, controller):
+        self.root = root
+        self.controller = controller
+        
         # Set appearance mode and color theme
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
 
-        self.root = ctk.CTk()
         self.root.title("YouTube Playlist Downloader")
         self.root.geometry("1200x800")
 
@@ -51,8 +45,7 @@ class YouTubeDownloaderGUI:
         self.random_delays_var = ctk.BooleanVar(value=True)
         self.batch_size_var = ctk.StringVar(value="5")
 
-        # Download state
-        self.download_thread: Optional[threading.Thread] = None
+        # UI Queues
         self.log_queue = queue.Queue()
         self.progress_queue = queue.Queue()
 
@@ -60,7 +53,7 @@ class YouTubeDownloaderGUI:
         self.current_video = 0
         self.total_videos = 0
         self.completed_files = 0
-        self.file_progress_widgets: Dict[str, tuple] = {}  # {file_name: (frame, label, progressbar)}
+        self.file_progress_widgets: Dict[str, tuple] = {}
 
         self.setup_ui()
         self.update_log_display()
@@ -80,14 +73,10 @@ class YouTubeDownloaderGUI:
         right_panel = ctk.CTkFrame(self.root)
         right_panel.grid(row=0, column=1, padx=(5, 10), pady=10, sticky="nsew")
 
-        # Setup left panel (settings)
         self.setup_left_panel(left_panel)
-
-        # Setup right panel (progress & logs)
         self.setup_right_panel(right_panel)
 
     def setup_left_panel(self, parent):
-        # Create scrollable frame for left panel
         scroll_frame = ctk.CTkScrollableFrame(parent, label_text="⚙️ Settings")
         scroll_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
@@ -107,18 +96,10 @@ class YouTubeDownloaderGUI:
         url_entry = ctk.CTkEntry(
             scroll_frame,
             textvariable=self.playlist_url_var,
-            placeholder_text="URLs (comma-separated for multiple)",
+            placeholder_text="URLs (comma-separated)",
             height=35
         )
         url_entry.pack(fill="x", padx=5, pady=(0, 5))
-
-        url_hint = ctk.CTkLabel(
-            scroll_frame,
-            text="💡 Supports playlists, individual videos, or multiple URLs",
-            font=ctk.CTkFont(size=9),
-            text_color="gray50"
-        )
-        url_hint.pack(anchor="w", padx=5, pady=(0, 10))
 
         # Output Folder
         folder_label = ctk.CTkLabel(scroll_frame, text="Output Folder:", font=ctk.CTkFont(size=13, weight="bold"))
@@ -145,7 +126,6 @@ class YouTubeDownloaderGUI:
         )
         browse_btn.pack(side="right")
 
-        # Separator
         sep1 = ctk.CTkFrame(scroll_frame, height=2, fg_color="gray30")
         sep1.pack(fill="x", padx=5, pady=15)
 
@@ -175,7 +155,6 @@ class YouTubeDownloaderGUI:
 
         # Manual Settings Frame
         self.manual_settings_frame = ctk.CTkFrame(scroll_frame, fg_color="gray20")
-        # Don't pack initially - only show when manual mode selected
 
         # Speed Profile
         speed_label = ctk.CTkLabel(self.manual_settings_frame, text="⚡ Speed Profile:", font=ctk.CTkFont(size=12, weight="bold"))
@@ -248,7 +227,6 @@ class YouTubeDownloaderGUI:
         )
         batch_entry.pack(anchor="w", padx=10, pady=(0, 15))
 
-        # Separator
         sep2 = ctk.CTkFrame(scroll_frame, height=2, fg_color="gray30")
         sep2.pack(fill="x", padx=5, pady=15)
 
@@ -277,13 +255,12 @@ class YouTubeDownloaderGUI:
         self.cancel_btn.pack(fill="x", padx=5, pady=(5, 10))
 
     def setup_right_panel(self, parent):
-        # Configure grid
-        parent.grid_rowconfigure(0, weight=0)  # Overall progress
-        parent.grid_rowconfigure(1, weight=2)  # File progress
-        parent.grid_rowconfigure(2, weight=1)  # Logs
+        parent.grid_rowconfigure(0, weight=0)
+        parent.grid_rowconfigure(1, weight=2)
+        parent.grid_rowconfigure(2, weight=1)
         parent.grid_columnconfigure(0, weight=1)
 
-        # Overall Progress Section
+        # Overall Progress
         overall_frame = ctk.CTkFrame(parent)
         overall_frame.grid(row=0, column=0, padx=10, pady=(10, 5), sticky="ew")
 
@@ -301,14 +278,13 @@ class YouTubeDownloaderGUI:
         self.overall_progress.pack(fill="x", padx=15, pady=(0, 15))
         self.overall_progress.set(0)
 
-        # Individual Files Progress Section
+        # Individual Files Progress
         files_frame = ctk.CTkFrame(parent)
         files_frame.grid(row=1, column=0, padx=10, pady=5, sticky="nsew")
 
         files_title = ctk.CTkLabel(files_frame, text="📁 Files Download Progress", font=ctk.CTkFont(size=16, weight="bold"))
         files_title.pack(anchor="w", padx=15, pady=(10, 5))
 
-        # Statistics label for files
         self.files_stats_label = ctk.CTkLabel(
             files_frame,
             text="Total: 0 | Downloading: 0 | Completed: 0",
@@ -317,11 +293,9 @@ class YouTubeDownloaderGUI:
         )
         self.files_stats_label.pack(anchor="w", padx=15, pady=(0, 5))
 
-        # Scrollable frame for individual file progress
         self.files_scroll = ctk.CTkScrollableFrame(files_frame, fg_color="gray15")
         self.files_scroll.pack(fill="both", expand=True, padx=10, pady=(5, 10))
 
-        # Placeholder text
         self.files_placeholder = ctk.CTkLabel(
             self.files_scroll,
             text="No downloads in progress",
@@ -330,7 +304,7 @@ class YouTubeDownloaderGUI:
         )
         self.files_placeholder.pack(pady=20)
 
-        # Logs Section
+        # Logs
         log_frame = ctk.CTkFrame(parent)
         log_frame.grid(row=2, column=0, padx=10, pady=(5, 10), sticky="nsew")
 
@@ -361,17 +335,13 @@ class YouTubeDownloaderGUI:
     def log(self, message: str):
         self.log_queue.put(message)
 
-    def add_file_progress(self, file_name: str, file_id: str, file_size: str = "", quality: str = "", format_type: str = ""):
-        """Add a new file progress widget with metadata"""
-        # Remove placeholder if exists
+    def add_file_progress(self, file_name: str, task_id: str):
         if hasattr(self, 'files_placeholder') and self.files_placeholder.winfo_exists():
             self.files_placeholder.destroy()
 
-        # Create frame for this file
         file_frame = ctk.CTkFrame(self.files_scroll, fg_color="gray25")
         file_frame.pack(fill="x", padx=5, pady=3)
 
-        # File name label (truncate if too long)
         display_name = file_name if len(file_name) <= 50 else file_name[:47] + "..."
         name_label = ctk.CTkLabel(
             file_frame,
@@ -381,31 +351,10 @@ class YouTubeDownloaderGUI:
         )
         name_label.pack(anchor="w", padx=10, pady=(8, 2))
 
-        # Metadata label (size, quality, format)
-        metadata_parts = []
-        if file_size:
-            metadata_parts.append(f"📦 {file_size}")
-        if quality:
-            metadata_parts.append(f"🎥 {quality}")
-        if format_type:
-            metadata_parts.append(f"📋 {format_type}")
-
-        metadata_text = " | ".join(metadata_parts) if metadata_parts else "Preparing..."
-        metadata_label = ctk.CTkLabel(
-            file_frame,
-            text=metadata_text,
-            font=ctk.CTkFont(size=9),
-            text_color="gray50",
-            anchor="w"
-        )
-        metadata_label.pack(anchor="w", padx=10, pady=(0, 4))
-
-        # Progress bar
         progress_bar = ctk.CTkProgressBar(file_frame, height=16)
         progress_bar.pack(fill="x", padx=10, pady=(0, 2))
         progress_bar.set(0)
 
-        # Status label
         status_label = ctk.CTkLabel(
             file_frame,
             text="Starting...",
@@ -414,40 +363,105 @@ class YouTubeDownloaderGUI:
         )
         status_label.pack(anchor="w", padx=10, pady=(0, 8))
 
-        # Store widgets
-        self.file_progress_widgets[file_id] = (file_frame, name_label, metadata_label, progress_bar, status_label)
+        self.file_progress_widgets[task_id] = (file_frame, name_label, progress_bar, status_label)
 
-    def update_file_progress(self, file_id: str, percent: float, status: str = ""):
-        """Update specific file progress"""
-        if file_id in self.file_progress_widgets:
-            frame, name_label, metadata_label, progress_bar, status_label = self.file_progress_widgets[file_id]
-            progress_bar.set(percent / 100.0)
-            if status:
-                status_label.configure(text=status)
-
-    def remove_file_progress(self, file_id: str):
-        """Remove file progress widget when done"""
-        if file_id in self.file_progress_widgets:
-            frame, _, _, _, _ = self.file_progress_widgets[file_id]  # 5 elements: frame, name_label, metadata_label, progress_bar, status_label
-            frame.destroy()
-            del self.file_progress_widgets[file_id]
-
-    def update_progress(self, current: int = None, total: int = None, current_file: str = None,
-                       percent: float = None, file_id: str = None, status: str = None,
-                       file_size: str = None, quality: str = None, format_type: str = None,
-                       completed: bool = False):
+    def update_progress_safely(self, task_id: str, url: str, percent: Optional[float], status_msg: str):
         self.progress_queue.put({
-            'current': current,
-            'total': total,
-            'current_file': current_file,
+            'task_id': task_id,
+            'url': url,
             'percent': percent,
-            'file_id': file_id,
-            'status': status,
-            'file_size': file_size,
-            'quality': quality,
-            'format_type': format_type,
-            'completed': completed
+            'status': status_msg
         })
+
+    def toggle_ui_state(self, enabled: bool):
+        self.root.after(0, lambda: self._toggle_ui_state_sync(enabled))
+
+    def _toggle_ui_state_sync(self, enabled: bool):
+        state = "normal" if enabled else "disabled"
+        self.start_btn.configure(state=state)
+        self.cancel_btn.configure(state="disabled" if enabled else "normal")
+
+    def validate_inputs(self) -> bool:
+        if not self.playlist_url_var.get().strip():
+            messagebox.showerror("Error", "Please enter a playlist URL")
+            return False
+        if not self.output_folder_var.get().strip():
+            messagebox.showerror("Error", "Please select an output folder")
+            return False
+        return True
+
+    def start_download(self):
+        if not self.validate_inputs():
+            return
+
+        self.toggle_ui_state(False)
+        self.log_text.delete("1.0", "end")
+
+        for task_id in list(self.file_progress_widgets.keys()):
+            self.file_progress_widgets[task_id][0].destroy()
+        self.file_progress_widgets.clear()
+
+        playlist_urls_input = self.playlist_url_var.get().strip()
+        urls = [url.strip() for url in playlist_urls_input.split(',') if url.strip()]
+        
+        output_base = os.path.abspath(self.output_folder_var.get().strip())
+        os.makedirs(output_base, exist_ok=True)
+        cookies_file = os.path.join(output_base, "yt_cookies.txt")
+
+        batch_size = 5
+        try:
+            batch_size = int(self.batch_size_var.get().strip())
+            if batch_size < 1:
+                batch_size = 5
+        except:
+            pass
+
+        # Parse config for controller
+        speed_map = {"1": (5*60, 2), "2": (8*60, 3), "3": (12*60, 5)}
+        speed_choice = self.speed_profile_var.get()[0]
+        wait_time, short_delay = speed_map.get(speed_choice, (8*60, 3))
+
+        config = DownloadConfig(
+            format_choice=self.format_var.get()[0],
+            quality_choice=self.quality_var.get()[0],
+            download_mode="idm" if self.method_var.get()[0] == "1" else "python",
+            wait_time=wait_time,
+            short_delay=short_delay,
+            use_random=self.random_delays_var.get(),
+            max_concurrent=batch_size,
+            output_dir=output_base,
+            cookies_file=cookies_file
+        )
+        
+        self.log(f"[{now()}] 🚀 Starting download orchestration...")
+        
+        import threading
+        def _extract_and_start():
+            from extractor import extract_playlist_info
+            all_video_urls = []
+            for url in urls:
+                try:
+                    self.log(f"[{now()}] 📥 Extracting URLs from: {url}")
+                    _, extracted_urls = extract_playlist_info(url)
+                    all_video_urls.extend(extracted_urls)
+                except Exception as e:
+                    self.log(f"[{now()}] ❌ Failed to extract {url}: {e}")
+            
+            if not all_video_urls:
+                self.log(f"[{now()}] ❌ No valid video URLs found.")
+                self.toggle_ui_state(True)
+                return
+                
+            self.total_videos = len(all_video_urls)
+            self.current_video = 0
+            self.root.after(0, lambda: self.controller.start_downloads(config, all_video_urls))
+            
+        threading.Thread(target=_extract_and_start, daemon=True).start()
+
+    def cancel_download(self):
+        self.log(f"[{now()}] ⛔ Canceling... In-flight downloads will stop shortly...")
+        self.cancel_btn.configure(state="disabled")
+        self.controller.cancel_all()
 
     def update_log_display(self):
         try:
@@ -464,320 +478,43 @@ class YouTubeDownloaderGUI:
         try:
             while True:
                 progress_data = self.progress_queue.get_nowait()
+                task_id = progress_data['task_id']
+                url = progress_data['url']
+                percent = progress_data['percent']
+                status = progress_data['status']
 
-                # Update overall progress
-                if progress_data.get('current') is not None:
-                    self.current_video = progress_data['current']
-                if progress_data.get('total') is not None:
-                    self.total_videos = progress_data['total']
+                if task_id not in self.file_progress_widgets:
+                    self.add_file_progress(url, task_id)
 
-                if self.total_videos > 0:
-                    overall_percent = self.current_video / self.total_videos
-                    self.overall_progress.set(overall_percent)
-                    self.overall_label.configure(text=f"Completed: {self.current_video} / {self.total_videos} videos ({overall_percent*100:.1f}%)")
+                frame, name_label, progress_bar, status_label = self.file_progress_widgets[task_id]
+                
+                # Check previous status to avoid multiple increments
+                prev_status = status_label.cget("text")
+                status_label.configure(text=status)
+                
+                if percent is not None:
+                    progress_bar.set(percent / 100.0)
 
-                # Add new file progress widget
-                if progress_data.get('current_file') and progress_data.get('file_id'):
-                    if progress_data['file_id'] not in self.file_progress_widgets:
-                        self.add_file_progress(
-                            progress_data['current_file'],
-                            progress_data['file_id'],
-                            file_size=progress_data.get('file_size', ''),
-                            quality=progress_data.get('quality', ''),
-                            format_type=progress_data.get('format_type', '')
-                        )
+                terminal_statuses = ["Complete", "Failed during download", "Canceled", "Failed", "Failed:"]
+                is_terminal = any(status.startswith(ts) for ts in terminal_statuses)
+                was_terminal = any(prev_status.startswith(ts) for ts in terminal_statuses)
 
-                # Update file progress
-                if progress_data.get('file_id') and progress_data.get('percent') is not None:
-                    status = progress_data.get('status', f"{progress_data['percent']:.1f}%")
-                    self.update_file_progress(progress_data['file_id'], progress_data['percent'], status)
-
-                # Remove completed file
-                if progress_data.get('file_id') and progress_data.get('completed'):
-                    self.remove_file_progress(progress_data['file_id'])
-                    self.completed_files += 1
-
-                # Update file statistics
-                # Count queued vs actively downloading files
-                queued_count = 0
-                downloading_count = 0
-                for file_id, widgets in self.file_progress_widgets.items():
-                    _, _, _, _, status_label = widgets
-                    status_text = status_label.cget("text")
-                    if "Queued" in status_text or "⏳" in status_text:
-                        queued_count += 1
-                    else:
-                        downloading_count += 1
-
-                pending_count = self.total_videos - self.completed_files - queued_count - downloading_count
-                self.files_stats_label.configure(
-                    text=f"Total: {self.total_videos} | Pending: {pending_count} | Queued: {queued_count} | Downloading: {downloading_count} | Completed: {self.completed_files}"
-                )
+                if is_terminal and not was_terminal:
+                    self.current_video += 1
+                    if self.total_videos > 0:
+                        overall_percent = self.current_video / self.total_videos
+                        self.overall_progress.set(overall_percent)
+                        self.overall_label.configure(text=f"Completed: {self.current_video} / {self.total_videos} videos ({overall_percent*100:.1f}%)")
 
         except queue.Empty:
             pass
         finally:
             self.root.after(100, self.update_progress_display)
 
-    def validate_inputs(self) -> bool:
-        if not self.playlist_url_var.get().strip():
-            messagebox.showerror("Error", "Please enter a playlist URL")
-            return False
-        if not self.output_folder_var.get().strip():
-            messagebox.showerror("Error", "Please select an output folder")
-            return False
-        return True
-
-    def check_cookies_gui(self, cookies_file: str) -> bool:
-        """Check cookies with GUI dialog instead of CLI prompt"""
-        import os
-        from utils import cookies_file_is_stale
-
-        if not os.path.exists(cookies_file) or cookies_file_is_stale(cookies_file):
-            result = messagebox.askyesno(
-                "Cookie File Required",
-                f"YouTube cookies are missing or stale.\n\n"
-                f"For age-restricted or private videos, you need to provide cookies.\n\n"
-                f"Cookie file location:\n{cookies_file}\n\n"
-                f"Do you want to continue without cookies?\n"
-                f"(You may encounter errors for restricted videos)",
-                icon='warning'
-            )
-            if not result:
-                # User wants to add cookies - show file dialog
-                cookie_path = filedialog.askopenfilename(
-                    title="Select YouTube Cookie File",
-                    filetypes=[("Text files", "*.txt"), ("All files", "*.*")]
-                )
-                if cookie_path:
-                    # Copy selected cookie file to expected location
-                    import shutil
-                    try:
-                        shutil.copy(cookie_path, cookies_file)
-                        messagebox.showinfo("Success", f"Cookie file copied to:\n{cookies_file}")
-                        return True
-                    except Exception as e:
-                        messagebox.showerror("Error", f"Failed to copy cookie file:\n{e}")
-                        return False
-                else:
-                    return False  # User cancelled
-        return True
-
-    def start_download(self):
-        if not self.validate_inputs():
-            return
-
-        # Disable start button, enable cancel
-        self.start_btn.configure(state="disabled")
-        self.cancel_btn.configure(state="normal")
-
-        # Clear previous logs and progress
-        self.log_text.delete("1.0", "end")
-
-        # Clear file progress widgets
-        for file_id in list(self.file_progress_widgets.keys()):
-            self.remove_file_progress(file_id)
-
-        # Reset progress
-        self.current_video = 0
-        self.total_videos = 0
-        self.completed_files = 0
-        self.overall_progress.set(0)
-        self.overall_label.configure(text="Starting...")
-        self.files_stats_label.configure(text="Total: 0 | Pending: 0 | Downloading: 0 | Completed: 0")
-
-        # Reset cancel event
-        CANCEL_EVENT.clear()
-
-        # Start download in separate thread
-        self.download_thread = threading.Thread(target=self.download_worker, daemon=True)
-        self.download_thread.start()
-
-    def download_worker(self):
-        try:
-            playlist_urls_input = self.playlist_url_var.get().strip()
-            # Split by comma and clean up whitespace
-            playlist_urls = [url.strip() for url in playlist_urls_input.split(',') if url.strip()]
-
-            if not playlist_urls:
-                self.log(f"[{now()}] ❌ No valid URLs provided.")
-                return
-
-            output_base = os.path.abspath(self.output_folder_var.get().strip())
-            os.makedirs(output_base, exist_ok=True)
-
-            self.log("=" * 60)
-            self.log("🔗 Smart YouTube Playlist Downloader")
-            self.log("=" * 60)
-            self.log(f"[{now()}] 📋 Processing {len(playlist_urls)} URL(s)")
-
-            # Get settings
-            if self.mode_var.get() == "auto":
-                self.log(f"[{now()}] ⏳ Measuring your internet speed, please wait…")
-                mbps = measure_network_speed_ookla()
-                if mbps is None:
-                    self.log(f"[{now()}] ⏳ Falling back to HTTP test… please wait")
-                    mbps = measure_network_speed()
-                wait_time, short_delay, use_random, format_choice, quality_choice, method = auto_select_settings(mbps)
-                batch_size = 5  # Default for auto mode
-                if mbps:
-                    self.log(f"[{now()}] 🌐 Measured speed: {mbps:.2f} Mbps")
-                self.log(f"[{now()}] ✅ Auto-selected settings applied")
-            else:
-                speed_map = {"1": (5*60, 2), "2": (8*60, 3), "3": (12*60, 5)}
-                speed_choice = self.speed_profile_var.get()[0]
-                wait_time, short_delay = speed_map.get(speed_choice, (8*60, 3))
-                use_random = self.random_delays_var.get()
-                format_choice = self.format_var.get()[0]
-                quality_choice = self.quality_var.get()[0]
-                method = self.method_var.get()[0]
-                try:
-                    batch_size = int(self.batch_size_var.get().strip())
-                    if batch_size < 1:
-                        batch_size = 5
-                except:
-                    batch_size = 5
-                self.log(f"[{now()}] ✅ Manual settings applied (Batch size: {batch_size})")
-
-            # Fallback if IDM not present
-            if method == "1" and not find_idm():
-                self.log(f"[{now()}] ⚠️ IDM not found. Falling back to Normal (Python).")
-                method = "2"
-            elif method == "1":
-                self.log(f"[{now()}] ✅ Using IDM for downloads (found at: {find_idm()})")
-            else:
-                self.log(f"[{now()}] ✅ Using Normal Python mode for downloads")
-
-            cookies_file = os.path.join(output_base, "yt_cookies.txt")
-            if not self.check_cookies_gui(cookies_file):
-                self.log(f"[{now()}] ⛔ Download cancelled - cookies required")
-                return
-
-            # Process each playlist/video URL
-            total_playlists = len(playlist_urls)
-            all_failed_videos = []
-            total_videos_overall = 0
-
-            for playlist_idx, playlist_url in enumerate(playlist_urls, start=1):
-                if CANCEL_EVENT.is_set():
-                    break
-
-                self.log(f"\n{'='*60}")
-                self.log(f"[{now()}] 📥 Processing URL {playlist_idx}/{total_playlists}")
-                self.log(f"{'='*60}")
-
-                # Extract URLs
-                self.log(f"[{now()}] 📥 STEP 1: Extracting video URLs…")
-                try:
-                    playlist_title, all_video_urls = extract_playlist_info(playlist_url)
-                except Exception as e:
-                    self.log(f"[{now()}] ❌ Failed to extract info from {playlist_url}: {e}")
-                    continue
-
-                safe_title = ''.join(c for c in playlist_title if c.isalnum() or c in ' -_().[]').rstrip()
-                # For multiple playlists, create unique folder names
-                if total_playlists > 1:
-                    playlist_folder = os.path.join(output_base, f"{playlist_idx}_{safe_title}")
-                else:
-                    playlist_folder = os.path.join(output_base, safe_title)
-                os.makedirs(playlist_folder, exist_ok=True)
-
-                urls_file = os.path.join(playlist_folder, "urls.txt")
-                unavailable_file = os.path.join(playlist_folder, "unavailable_videos.txt")
-
-                if not os.path.exists(urls_file):
-                    save_urls_to_file(all_video_urls, urls_file)
-                else:
-                    self.log(f"[{now()}] 📄 Using existing URL list from: {urls_file}")
-
-                video_urls = load_urls_from_file(urls_file)
-
-                self.log(f"\n🎬 {('Playlist' if len(all_video_urls) > 1 else 'Video')}: '{playlist_title}'")
-                self.log(f"📊 Videos Remaining: {len(video_urls)}")
-                self.log(f"[{now()}] ✅ URL extraction complete!")
-
-                # Set total videos for this playlist
-                total_videos_overall += len(video_urls)
-                self.update_progress(current=0, total=len(video_urls))
-
-                # STEP 2: Download
-                self.log(f"\n{'='*60}")
-                self.log(f"[{now()}] 🚀 STEP 2: Starting downloads for '{playlist_title}'…")
-                self.log(f"{'='*60}")
-
-                # Pass GUI callback to workflow
-                if method == "1":
-                    failed_videos = process_batch_idm_with_monitoring(
-                        video_urls, format_choice, quality_choice,
-                        cookies_file, playlist_folder, urls_file,
-                        wait_time, short_delay, use_random,
-                        batch_size=batch_size,
-                        progress_callback=self.update_progress,
-                        log_callback=self.log
-                    )
-                else:
-                    failed_videos = process_batches_normal(
-                        video_urls, format_choice, quality_choice,
-                        cookies_file, playlist_folder, urls_file,
-                        wait_time, use_random,
-                        batch_size=batch_size,
-                        progress_callback=self.update_progress,
-                        log_callback=self.log
-                    )
-
-                # Save unavailable videos
-                if failed_videos:
-                    with open(unavailable_file, "a", encoding="utf-8") as uf:
-                        for v in failed_videos:
-                            uf.write(f"{v}  # Failed after retry\n")
-                    self.log(f"\n[{now()}] ⚠️ {len(failed_videos)} videos failed for '{playlist_title}' and saved to: {unavailable_file}")
-                    all_failed_videos.extend(failed_videos)
-
-                if CANCEL_EVENT.is_set():
-                    break
-
-                # Add separator between playlists
-                if playlist_idx < total_playlists:
-                    self.log(f"\n{'='*60}")
-                    self.log(f"[{now()}] ✅ Completed playlist {playlist_idx}/{total_playlists}: '{playlist_title}'")
-                    self.log(f"[{now()}] 📋 Moving to next playlist...")
-                    self.log(f"{'='*60}")
-
-            if CANCEL_EVENT.is_set():
-                self.log(f"\n{'='*60}")
-                self.log(f"[{now()}] ⛔ Canceled. You can rerun later to resume from 'urls.txt'.")
-                self.log(f"{'='*60}\n")
-            else:
-                self.log(f"\n{'='*60}")
-                self.log(f"[{now()}] ✅ All done!")
-                if total_playlists > 1:
-                    self.log(f"[{now()}] 📊 Processed {total_playlists} playlists/videos")
-                if all_failed_videos:
-                    self.log(f"[{now()}] ⚠️ Total failed videos across all playlists: {len(all_failed_videos)}")
-                self.log(f"{'='*60}")
-                self.log(f"💡 Tip: To resume later, rerun the script. It will pick up remaining URLs from 'urls.txt'")
-                self.log(f"{'='*60}\n")
-
-        except Exception as e:
-            self.log(f"\n[{now()}] ❌ Error: {str(e)}")
-        finally:
-            # Re-enable buttons
-            self.root.after(0, lambda: self.start_btn.configure(state="normal"))
-            self.root.after(0, lambda: self.cancel_btn.configure(state="disabled"))
-
-    def cancel_download(self):
-        CANCEL_EVENT.set()
-        self.log(f"\n[{now()}] ⛔ Canceling... In-flight downloads will stop shortly…")
-        self.cancel_btn.configure(state="disabled")
-
-    def run(self):
-        self.root.mainloop()
-
-
-def main():
-    app = YouTubeDownloaderGUI()
-    app.run()
-
-
 if __name__ == "__main__":
-    main()
+    from controller import DownloaderController
+    root = ctk.CTk()
+    view = DownloaderView(root, None)
+    controller = DownloaderController(view)
+    view.controller = controller
+    root.mainloop()

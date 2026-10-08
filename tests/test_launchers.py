@@ -19,7 +19,7 @@ class TestLaunchers(unittest.TestCase):
         has_import = False
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom):
-                if node.module == "gui" and any(n.name == "main" for n in node.names):
+                if node.module == "main" and any(n.name == "main" for n in node.names):
                     has_import = True
         self.assertTrue(has_import)
 
