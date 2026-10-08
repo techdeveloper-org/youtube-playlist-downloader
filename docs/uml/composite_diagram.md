@@ -22,3 +22,4 @@ classDiagram
     DownloaderSystem *-- CoreLogic
     DownloaderSystem *-- ExternalIntegrations
 ```
+

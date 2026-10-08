@@ -9,3 +9,4 @@ flowchart LR
     DL -- "7: progress_callback()" --> Ctrl
     Ctrl -- "8: update_progress_safely()" --> UI
 ```
+

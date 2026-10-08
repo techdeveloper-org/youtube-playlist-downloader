@@ -15,3 +15,4 @@ sequenceDiagram
     Ctrl-->>View: progress updates
     View->>Ctrl: cancel_all() (if requested)
 ```
+

@@ -35,3 +35,4 @@ flowchart TB
     DownloaderController --> FilesIO
     DownloaderController --> SpeedTest
 ```
+

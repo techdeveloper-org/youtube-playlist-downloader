@@ -36,3 +36,4 @@ classDiagram
     DownloaderStrategy <|-- IDMDownloader
     DownloaderController --> PlaylistState
 ```
+

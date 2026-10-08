@@ -10,3 +10,4 @@ flowchart LR
     downloaders.PythonDownloader.download --> controller._notify_view
     controller._notify_view --> gui.update_progress_safely
 ```
+
