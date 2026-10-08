@@ -49,21 +49,27 @@ youtube-playlist-downloader/
 ├── CLAUDE.md                  # Claude Code guidance & technical reference
 ├── run_gui.py                 # Direct GUI launcher script
 ├── run_youtube_downloader.py  # Direct CLI launcher script
-└──  # Core Python package
-    ├── __init__.py
-    ├── __main__.py            # Enables `python main.py`
-    ├── deps.py                # Dependency check/importer
-    ├── utils.py               # Helpers: time, sanitize, human_bytes, TTS, cancel, cookies
-    ├── files_io.py            # URL file persistence & cleanup
-    ├── paths.py               # IDM detection logic
-    ├── formats.py             # Format scoring & stream selection
+├── benchmark.py               # Performance benchmarking script
+├── run_e2e_test.py            # End-to-end test runner
+├── docs/                      # UML & Draw.io architectural diagrams
+│   ├── drawio/                # Editable visual architecture diagrams
+│   └── uml/                   # Mermaid/PlantUML source files
+├── tests/                     # Automated unit and integration tests
+├── youtube_playlist_downloader/ # (Deprecated v1.x namespace)
+└── # Core Application Modules (Flattened in v2.0.0)
+    ├── model.py               # Domain models (PlaylistState, etc.)
+    ├── gui.py                 # GUI components (DownloaderView)
+    ├── controller.py          # App orchestration (DownloaderController)
+    ├── downloaders.py         # Strategies (PythonDownloader, IDMDownloader)
     ├── extractor.py           # Video/playlist metadata extraction (yt-dlp)
-    ├── downloaders.py         # Multi-connection chunked downloads & FFmpeg merge
-    ├── speedtest_utils.py     # Ookla + HTTP fallback network speed test
     ├── choices.py             # Interactive CLI selection prompts
-    ├── workflow.py            # Sequential & concurrent batch processing
-    ├── main.py                # CLI execution engine
-    └── gui.py                 # CustomTkinter modern graphical user interface
+    ├── formats.py             # Format scoring & stream selection
+    ├── paths.py               # Executable and tool detection logic
+    ├── utils.py               # Helpers: time, sanitize, human_bytes
+    ├── speedtest_utils.py     # Network speed tests
+    ├── files_io.py            # Disk persistence operations
+    ├── deps.py                # Dependency check/importer
+    └── main.py                # Application entrypoint & CLI engine
 ```
 
 ---
