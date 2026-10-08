@@ -73,6 +73,8 @@ def extract_direct_download_info(video_url: str, format_choice: str, quality_cho
                     "ext": fmt.get("ext", "m4a"),
                     "direct_url": fmt.get("url"),
                     "format_id": fmt.get("format_id"),
+                    "raw_format_id": fmt.get("format_id"),
+                    "original_url": video_url,
                     "bitrate": bitrate_info,
                     "vcodec": "none",
                     "acodec": fmt.get("acodec"),
@@ -88,6 +90,8 @@ def extract_direct_download_info(video_url: str, format_choice: str, quality_cho
                     "ext": fmt.get("ext", "mp4"),
                     "direct_url": fmt.get("url"),
                     "format_id": fmt.get("format_id"),
+                    "raw_format_id": fmt.get("format_id"),
+                    "original_url": video_url,
                     "resolution": f"{fmt.get('height')}p" if fmt.get('height') else "unknown",
                     "vcodec": fmt.get("vcodec"),
                     "acodec": "none",
@@ -96,17 +100,13 @@ def extract_direct_download_info(video_url: str, format_choice: str, quality_cho
                 }, None
             else:
                 # Video+Audio format
-                # IMPORTANT: For quality "3" (Best) or "2" (Medium), prefer separate streams
-                # Combined formats rarely exceed 720p, so they limit quality
                 quality = quality_choice or "3"
 
                 if quality in ("2", "3"):
-                    # Medium or Best quality: Try separate streams first (higher quality)
                     video_fmt = select_video_format(formats, quality)
                     audio_fmt = select_audio_format(formats, quality)
 
                     if video_fmt and audio_fmt:
-                        # Separate streams available - use them for better quality
                         vcodec = video_fmt.get("vcodec", "")
                         acodec = audio_fmt.get("acodec", "")
                         if "av01" in vcodec or "av1" in vcodec:
@@ -125,6 +125,8 @@ def extract_direct_download_info(video_url: str, format_choice: str, quality_cho
                             "audio_url": audio_fmt.get("url"),
                             "video_ext": video_fmt.get("ext", "mp4"),
                             "audio_ext": audio_fmt.get("ext", "m4a"),
+                            "raw_format_id": f"{video_fmt.get('format_id')}+{audio_fmt.get('format_id')}",
+                            "original_url": video_url,
                             "vcodec": video_fmt.get("vcodec"),
                             "acodec": audio_fmt.get("acodec"),
                             "resolution": f"{video_fmt.get('height')}p" if video_fmt.get('height') else "unknown",
@@ -132,7 +134,6 @@ def extract_direct_download_info(video_url: str, format_choice: str, quality_cho
                             "http_headers": video_fmt.get("http_headers", base_headers)
                         }, None
                     else:
-                        # Fallback to combined format if separate streams not available
                         fmt = select_combined_format(formats, quality)
                         if fmt:
                             return {
@@ -140,6 +141,8 @@ def extract_direct_download_info(video_url: str, format_choice: str, quality_cho
                                 "ext": fmt.get("ext", "mp4"),
                                 "direct_url": fmt.get("url"),
                                 "format_id": fmt.get("format_id"),
+                                "raw_format_id": fmt.get("format_id"),
+                                "original_url": video_url,
                                 "resolution": f"{fmt.get('height')}p" if fmt.get('height') else "unknown",
                                 "vcodec": fmt.get("vcodec"),
                                 "acodec": fmt.get("acodec"),
@@ -149,7 +152,6 @@ def extract_direct_download_info(video_url: str, format_choice: str, quality_cho
                         else:
                             return None, "Cannot find suitable video/audio streams"
                 else:
-                    # Low quality: Combined format is fine (smaller, faster)
                     fmt = select_combined_format(formats, quality)
                     if fmt:
                         return {
@@ -157,6 +159,8 @@ def extract_direct_download_info(video_url: str, format_choice: str, quality_cho
                             "ext": fmt.get("ext", "mp4"),
                             "direct_url": fmt.get("url"),
                             "format_id": fmt.get("format_id"),
+                            "raw_format_id": fmt.get("format_id"),
+                            "original_url": video_url,
                             "resolution": f"{fmt.get('height')}p" if fmt.get('height') else "unknown",
                             "vcodec": fmt.get("vcodec"),
                             "acodec": fmt.get("acodec"),
@@ -164,7 +168,6 @@ def extract_direct_download_info(video_url: str, format_choice: str, quality_cho
                             "http_headers": fmt.get("http_headers", base_headers)
                         }, None
                     else:
-                        # Fallback to separate streams
                         video_fmt = select_video_format(formats, quality)
                         audio_fmt = select_audio_format(formats, quality)
                         if not video_fmt or not audio_fmt:
@@ -187,6 +190,8 @@ def extract_direct_download_info(video_url: str, format_choice: str, quality_cho
                             "audio_url": audio_fmt.get("url"),
                             "video_ext": video_fmt.get("ext", "mp4"),
                             "audio_ext": audio_fmt.get("ext", "m4a"),
+                            "raw_format_id": f"{video_fmt.get('format_id')}+{audio_fmt.get('format_id')}",
+                            "original_url": video_url,
                             "vcodec": video_fmt.get("vcodec"),
                             "acodec": audio_fmt.get("acodec"),
                             "resolution": f"{video_fmt.get('height')}p" if video_fmt.get('height') else "unknown",
