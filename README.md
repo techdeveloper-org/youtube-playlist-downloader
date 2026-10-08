@@ -1,67 +1,19 @@
-# YouTube Playlist Downloader (IDM + Python)
+# YouTube Playlist Downloader
 
-A smart YouTube playlist downloader for Windows that can:
-- Extract videos from YouTube playlists **or individual video URLs** (supports comma-separated multiple URLs)
-- Download via IDM (Internet Download Manager) or Normal (Python requests with **IDM-style multi-connection**)
-- **Chunked parallel downloads**: Each file uses 4-16 concurrent connections for maximum speed
-- Auto-detect your internet speed and choose the best download settings
-- Auto-select Video+Audio quality based on speed (≤1 Mbps → Low, ≤10 Mbps → Medium, >10 Mbps → High)
-  - **Intelligent quality selection**: Ensures true highest quality (separate streams preferred for Best/Medium)
-  - Combined formats limited to 720p on YouTube; separate streams allow up to 4K/8K
-- Show per-file progress bars with live MB/GB, Mbps, and **chunk status** [Active: X/Y | Done: Z/Y]
-- Merge separate video and audio streams with **lossless FFmpeg** (no re-encoding)
-- User-configurable batch downloads (default 5 at a time) with wait times between batches
-- Resume unfinished downloads using urls.txt
-- Gracefully cancel with Ctrl+C (immediate stop)
+A highly robust, parallel-processing YouTube downloader with a modern GUI, smart IDM integration, and a completely bulletproof yt-dlp native core to bypass YouTube's 403 Forbidden errors.
 
-This repository organizes the logic into a clean, maintainable Python package.
+## Why This Downloader is Different (and Better)
 
----
+Normal YouTube download scripts and wrappers often fail today because YouTube aggressively blocks third-party downloads with 403 Forbidden errors, limits speeds, and requires complex bot-bypasses. Here is how this tool solves everything:
 
-## Features
-
-- **Auto Select mode** (recommended)
-  - Uses Ookla Speedtest (speedtest-cli) to measure your real download speed
-  - Falls back to HTTP mirror test if Ookla fails
-  - Picks quality automatically:
-    - ≤1 Mbps → Video+Audio Low
-    - ≤10 Mbps → Video+Audio Medium
-    - >10 Mbps → Video+Audio High
-  - Chooses IDM if installed (preferred on moderate+ links), otherwise Normal (Python)
-  - Selects a conservative batch wait profile based on speed
-
-- **Manual Mode**
-  - Choose speed profile (Fast/Medium/Slow), with optional randomized waits
-  - Choose format and quality
-  - Choose download method (IDM or Normal)
-  - Configure batch size (how many videos download in parallel, default 5)
-
-- **Progress tracking** (GUI & CLI)
-  - GUI:
-    - Overall progress bar showing total completion percentage
-    - Individual file progress cards with real-time updates
-    - Each file displayed separately with its own progress bar and chunk status
-    - Shows: "45.2 MB/100 MB at 8.5 Mbps [Active: 4/6]" (active chunks out of total)
-    - Statistics bar: "Total: X | Pending: Y | Downloading: Z | Completed: W"
-    - Cards dynamically added/removed during download
-  - CLI: Per-file progress bars with "downloaded/total at: X.XX Mbps [Active: X/Y | Done: Z/Y]"
-  - IDM merges (when separate streams): same rich progress display with chunk tracking
-  - Clear messages like "please wait…" during speed testing and applying choices
-
-- **Robustness**
-  - Auto-installs dependencies (yt-dlp, requests, tqdm, speedtest-cli, customtkinter)
-  - Dynamic IDM detection (no hardcoded path)
-  - **Intelligent quality selection**: No hardcoded format IDs, uses dynamic scoring (resolution, bitrate, fps, codec)
-  - **Smart format priority**: Separate streams for Best/Medium quality (ensures true highest quality, not limited to 720p)
-  - **Chunked parallel downloads**: 4-6 chunks per file in batch mode, 8-16 for single files
-    - HTTP byte-range requests for concurrent downloads
-    - Automatic fallback to sequential if server doesn't support ranges
-  - Cookie file checks with friendly prompts
-  - Retry for failed items; write failures to `unavailable_videos.txt`
-  - Graceful cancellation; cleans up partial files, immediate stop when canceled
-  - **Lossless merging**: FFmpeg uses `-c:v copy -c:a copy` (no re-encoding, no quality loss)
-
----
+1. **Bulletproof 403 Bypass:** Unlike normal scripts that extract a URL and pass it to 
+equests (which gets instantly blocked by YouTube), this app uses **yt-dlp native downloading** internally. It automatically uses YouTube Android VR and iOS client spoofing to ensure your downloads never fail.
+2. **Multi-Part Native Downloads (Concurrent Fragments):** Standard wrappers download videos in a slow, single-threaded connection. We configured the engine to use **8 concurrent connections per video** (Multi-Part Download), acting exactly like IDM to saturate your bandwidth!
+3. **Smart IDM Integration:** Have Internet Download Manager? The app detects it and offloads the heavy lifting to IDM while handling the extraction quietly in the background.
+4. **Parallel Video Downloads:** Not only does it download a single video in 8 chunks, it also downloads **multiple videos at the same time** (configurable batch size) using a thread pool.
+5. **Modern CustomTkinter GUI:** Forget ugly command-line scripts. Enjoy a sleek, dark-themed dashboard showing live speeds, ETAs, and individual progress bars for every concurrent video.
+6. **Graceful Cancellation:** Hit "Cancel" anytime. It instantly kills download threads, stops FFmpeg merging, and cleans up without leaving zombie processes.
+7. **Lossless Merging:** Automatically downloads the highest quality Video and Audio streams separately and merges them losslessly using FFmpeg.
 
 ## Requirements & Installation
 
@@ -199,23 +151,15 @@ If missing/stale, the tool will prompt with clear instructions. You can update t
 ## Normal (Python) Mode
 
 - Downloads up to **user-configured batch size** (default 5) items concurrently per batch
-- **Chunked parallel downloads** (IDM-style multi-connection):
-  - Each file uses 4-6 parallel chunks in batch mode (prevents connection exhaustion)
-  - Single file downloads use 8-16 chunks for maximum speed
-  - HTTP byte-range requests for concurrent chunk downloads
-  - Background thread updates progress every 0.3s for smooth UI
-  - Shows chunk status: `[Active: X/Y | Done: Z/Y]`
-  - Automatic fallback to sequential if server doesn't support byte ranges
-- Shows per-file progress bars with live Mbps and chunk tracking
-- If a video requires separate streams, shows a combined progress bar and merges via FFmpeg (lossless - no re-encoding)
-- Waits a configurable number of minutes between batches (Fast/Medium/Slow profiles)
-- GUI shows individual progress cards for each file being downloaded simultaneously
-  - Each concurrent download gets its own card with progress bar
-  - Real-time status updates: "45.2 MB/100 MB at 8.5 Mbps [Active: 4/6]"
-  - Statistics bar: "Total: X | Pending: Y | Downloading: Z | Completed: W"
-  - Cards are removed automatically when files complete
-
----
+- **Multi-Part Native Downloading:** 
+  - Each video uses up to **8 concurrent connections/fragments** natively via the yt-dlp engine.
+  - No slow single-threaded limits; acts like IDM to max out your internet speed.
+- **Bulletproof Execution:** Bypasses 403 Forbidden errors by using internal Android/iOS client APIs.
+- Shows per-file progress bars with live speed and ETA tracking.
+- If a video requires separate streams (e.g. 1080p+), it downloads both sequentially (each in 8 parts) and merges via FFmpeg (lossless).
+- Waits a configurable number of minutes between batches (Fast/Medium/Slow profiles) to avoid YouTube rate-limiting.
+- GUI shows individual progress cards for each file being downloaded simultaneously.
+  - Real-time status updates and clean UI.
 
 ## Troubleshooting
 
