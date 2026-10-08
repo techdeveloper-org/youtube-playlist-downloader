@@ -5,8 +5,92 @@
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-    <mxCell id="3" value="Error: 'str' object has no attribute 'get'" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;strokeWidth=2;" vertex="1" parent="1">
-      <mxGeometry x="100" y="100" width="400" height="50" as="geometry" />
+    <mxCell id="2" value="DownloaderView" style="swimlane;fontStyle=1;align=center;startSize=26;container=1;collapsible=0;expand=0;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;strokeWidth=2;" vertex="1" parent="1">
+      <mxGeometry x="40" y="40" width="220" height="146" as="geometry" />
+    </mxCell>
+    <mxCell id="3" value=" " style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="2">
+      <mxGeometry x="0" y="26" width="220" height="28" as="geometry" />
+    </mxCell>
+    <mxCell id="4" value="" style="line;html=1;strokeColor=#9673A6;strokeWidth=1;fillColor=none;" vertex="1" parent="2">
+      <mxGeometry x="0" y="54" width="220" height="8" as="geometry" />
+    </mxCell>
+    <mxCell id="5" value="+ start_download()&amp;#xa;+ cancel_download()&amp;#xa;+ update_progress_safely()&amp;#xa;+ show_error()" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="2">
+      <mxGeometry x="0" y="62" width="220" height="84" as="geometry" />
+    </mxCell>
+    <mxCell id="6" value="DownloaderController" style="swimlane;fontStyle=1;align=center;startSize=26;container=1;collapsible=0;expand=0;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;strokeWidth=2;" vertex="1" parent="1">
+      <mxGeometry x="330" y="40" width="220" height="162" as="geometry" />
+    </mxCell>
+    <mxCell id="7" value="- view: DownloaderView&amp;#xa;- state: PlaylistState" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="6">
+      <mxGeometry x="0" y="26" width="220" height="44" as="geometry" />
+    </mxCell>
+    <mxCell id="8" value="" style="line;html=1;strokeColor=#9673A6;strokeWidth=1;fillColor=none;" vertex="1" parent="6">
+      <mxGeometry x="0" y="70" width="220" height="8" as="geometry" />
+    </mxCell>
+    <mxCell id="9" value="+ start_downloads(config, items)&amp;#xa;+ cancel_all()&amp;#xa;- _orchestrator_thread(config, items, cancel_event, run_id)&amp;#xa;- _worker_task(task_id, url, config, cancel_event)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="6">
+      <mxGeometry x="0" y="78" width="220" height="84" as="geometry" />
+    </mxCell>
+    <mxCell id="10" value="DownloaderStrategy" style="swimlane;fontStyle=1;align=center;startSize=26;container=1;collapsible=0;expand=0;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;strokeWidth=2;" vertex="1" parent="1">
+      <mxGeometry x="620" y="40" width="220" height="90" as="geometry" />
+    </mxCell>
+    <mxCell id="11" value=" " style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="10">
+      <mxGeometry x="0" y="26" width="220" height="28" as="geometry" />
+    </mxCell>
+    <mxCell id="12" value="" style="line;html=1;strokeColor=#9673A6;strokeWidth=1;fillColor=none;" vertex="1" parent="10">
+      <mxGeometry x="0" y="54" width="220" height="8" as="geometry" />
+    </mxCell>
+    <mxCell id="13" value="+ download(info, config, task_id, progress_callback)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="10">
+      <mxGeometry x="0" y="62" width="220" height="28" as="geometry" />
+    </mxCell>
+    <mxCell id="14" value="PythonDownloader" style="swimlane;fontStyle=1;align=center;startSize=26;container=1;collapsible=0;expand=0;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;strokeWidth=2;" vertex="1" parent="1">
+      <mxGeometry x="910" y="40" width="220" height="90" as="geometry" />
+    </mxCell>
+    <mxCell id="15" value=" " style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="14">
+      <mxGeometry x="0" y="26" width="220" height="28" as="geometry" />
+    </mxCell>
+    <mxCell id="16" value="" style="line;html=1;strokeColor=#9673A6;strokeWidth=1;fillColor=none;" vertex="1" parent="14">
+      <mxGeometry x="0" y="54" width="220" height="8" as="geometry" />
+    </mxCell>
+    <mxCell id="17" value="+ download(info, config, task_id, progress_callback)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="14">
+      <mxGeometry x="0" y="62" width="220" height="28" as="geometry" />
+    </mxCell>
+    <mxCell id="18" value="IDMDownloader" style="swimlane;fontStyle=1;align=center;startSize=26;container=1;collapsible=0;expand=0;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;strokeWidth=2;" vertex="1" parent="1">
+      <mxGeometry x="40" y="210" width="220" height="90" as="geometry" />
+    </mxCell>
+    <mxCell id="19" value=" " style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="18">
+      <mxGeometry x="0" y="26" width="220" height="28" as="geometry" />
+    </mxCell>
+    <mxCell id="20" value="" style="line;html=1;strokeColor=#9673A6;strokeWidth=1;fillColor=none;" vertex="1" parent="18">
+      <mxGeometry x="0" y="54" width="220" height="8" as="geometry" />
+    </mxCell>
+    <mxCell id="21" value="+ download(info, config, task_id, progress_callback)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="18">
+      <mxGeometry x="0" y="62" width="220" height="28" as="geometry" />
+    </mxCell>
+    <mxCell id="22" value="PlaylistState" style="swimlane;fontStyle=1;align=center;startSize=26;container=1;collapsible=0;expand=0;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;strokeWidth=2;" vertex="1" parent="1">
+      <mxGeometry x="330" y="246" width="220" height="126" as="geometry" />
+    </mxCell>
+    <mxCell id="23" value="+ status: dict" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="22">
+      <mxGeometry x="0" y="26" width="220" height="28" as="geometry" />
+    </mxCell>
+    <mxCell id="24" value="" style="line;html=1;strokeColor=#9673A6;strokeWidth=1;fillColor=none;" vertex="1" parent="22">
+      <mxGeometry x="0" y="54" width="220" height="8" as="geometry" />
+    </mxCell>
+    <mxCell id="25" value="+ add_task(url, title)&amp;#xa;+ set_status(task_id, status)&amp;#xa;+ get_status(task_id)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;spacingLeft=6;spacingRight=4;overflow=hidden;rotatable=0;" vertex="1" parent="22">
+      <mxGeometry x="0" y="62" width="220" height="64" as="geometry" />
+    </mxCell>
+    <mxCell id="26" value="" style="endArrow=open;endSize=8;html=1;strokeColor=#000000;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;" edge="1" source="2" target="6" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="27" value="" style="endArrow=open;endSize=8;html=1;strokeColor=#000000;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;" edge="1" source="6" target="10" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="28" value="" style="endArrow=open;endSize=8;html=1;strokeColor=#000000;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;" edge="1" source="14" target="10" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="29" value="" style="endArrow=open;endSize=8;html=1;strokeColor=#000000;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;" edge="1" source="18" target="10" parent="1">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+    <mxCell id="30" value="" style="endArrow=open;endSize=8;html=1;strokeColor=#000000;strokeWidth=2;edgeStyle=orthogonalEdgeStyle;" edge="1" source="6" target="22" parent="1">
+      <mxGeometry relative="1" as="geometry" />
     </mxCell>
       </root>
     </mxGraphModel>
