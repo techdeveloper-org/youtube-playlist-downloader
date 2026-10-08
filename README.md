@@ -148,6 +148,18 @@ If missing/stale, the tool will prompt with clear instructions. You can update t
 
 ---
 
+---
+
+## FAQ: Why Python Mode is recommended over IDM for Large Playlists
+
+Many users ask: **"Why not just export all URLs to IDM and use IDM's Scheduler to download the playlist at night?"**
+
+While you *can* do that, it is **highly discouraged for YouTube**, and here is why:
+
+1. **URL Expiry (The 403 Forbidden Problem):** YouTube direct video URLs are only valid for **6 hours**. If you send 50 videos to IDM's queue and schedule them for later, the URLs will expire before IDM even starts downloading them. IDM will fail with a 403 Forbidden error because it cannot natively bypass YouTube's bot protection to refresh the links.
+2. **Lossless Video+Audio Merging:** High-quality YouTube videos (1080p, 4K) separate their video and audio streams. This app handles sending both parts to the downloader, waiting for them to finish, and seamlessly merging them using FFmpeg. If you just queue them in IDM and close the app, you will be left with unplayable, separate video and audio files.
+3. **The Solution (Smart Batch Downloading):** Our **Normal (Python) Mode** is the ultimate replacement for IDM scheduling. Just set your "Batch Size" to 5 in the GUI. The app will extract the URL and download it immediately (before it expires), using 8-part concurrent connections (giving you IDM-level speeds), and seamlessly merge them in the background while working through your entire playlist automatically.
+
 ## Normal (Python) Mode
 
 - Downloads up to **user-configured batch size** (default 5) items concurrently per batch
