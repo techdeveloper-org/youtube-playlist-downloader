@@ -16,7 +16,7 @@ python run_gui.py
 ### CLI Mode
 **Primary method:**
 ```bash
-python -m youtube_playlist_downloader
+python main.py
 ```
 
 **Alternative method:**

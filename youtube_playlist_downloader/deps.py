@@ -1,39 +1,16 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-
-"""Dependencies and auto-installer for youtube_playlist_downloader"""
-
-import sys
-import subprocess
+"""Compatibility wrapper for deps module in youtube_playlist_downloader."""
+import warnings
 import importlib
 
+warnings.warn(
+    "Importing from 'youtube_playlist_downloader.deps' is deprecated in v2.0.0; "
+    "use 'import deps' directly.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
-def ensure_package(pkg: str, import_name: str | None = None):
-    try:
-        return importlib.import_module(import_name or pkg)
-    except ImportError:
-        subprocess.check_call([sys.executable, "-m", "pip", "install", pkg])
-        return importlib.import_module(import_name or pkg)
+_mod = importlib.import_module("deps")
 
-
-# Core deps
-yt_dlp = ensure_package("yt-dlp", "yt_dlp")
-requests = ensure_package("requests")
-
-# Optional tqdm
-try:
-    tqdm = ensure_package("tqdm").tqdm
-except Exception:
-    tqdm = None
-
-# Optional Ookla Speedtest
-try:
-    speedtest = ensure_package("speedtest-cli", "speedtest")
-except Exception:
-    speedtest = None
-
-# Optional CustomTkinter for GUI
-try:
-    customtkinter = ensure_package("customtkinter")
-except Exception:
-    customtkinter = None
+for _k, _v in _mod.__dict__.items():
+    if not _k.startswith("__") or _k in ("__doc__", "__all__"):
+        globals()[_k] = _v

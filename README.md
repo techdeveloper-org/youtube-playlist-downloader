@@ -97,9 +97,9 @@ youtube-playlist-downloader/
 ├── CLAUDE.md                  # Claude Code guidance & technical reference
 ├── run_gui.py                 # Direct GUI launcher script
 ├── run_youtube_downloader.py  # Direct CLI launcher script
-└── youtube_playlist_downloader/ # Core Python package
+└──  # Core Python package
     ├── __init__.py
-    ├── __main__.py            # Enables `python -m youtube_playlist_downloader`
+    ├── __main__.py            # Enables `python main.py`
     ├── deps.py                # Dependency check/importer
     ├── utils.py               # Helpers: time, sanitize, human_bytes, TTS, cancel, cookies
     ├── files_io.py            # URL file persistence & cleanup
@@ -150,7 +150,7 @@ The GUI provides:
 
 - As a module (recommended):
 ```bash
-python -m youtube_playlist_downloader
+python main.py
 ```
 
 - Or via the launcher script:
@@ -255,3 +255,8 @@ For developers working on this codebase, see [CLAUDE.md](CLAUDE.md) for detailed
 ## License
 
 MIT License
+
+## v2.0.0 Migration Note
+In version 2.0.0, all core Python modules have been flattened and moved directly to the repository root.
+The old `youtube_playlist_downloader` namespace is deprecated and will be removed in v3.0.0.
+Please use `python main.py` or `python run_youtube_downloader.py` directly, and import root modules (e.g., `import utils` instead of `from youtube_playlist_downloader import utils`).

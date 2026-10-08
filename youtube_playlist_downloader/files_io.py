@@ -1,28 +1,16 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
+"""Compatibility wrapper for files_io module in youtube_playlist_downloader."""
+import warnings
+import importlib
 
-"""Filesystem helpers"""
+warnings.warn(
+    "Importing from 'youtube_playlist_downloader.files_io' is deprecated in v2.0.0; "
+    "use 'import files_io' directly.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
-from typing import List
+_mod = importlib.import_module("files_io")
 
-
-def remove_url_from_file(urls_file: str, url: str):
-    try:
-        with open(urls_file, "r", encoding="utf-8") as f:
-            lines = f.readlines()
-        with open(urls_file, "w", encoding="utf-8") as f:
-            for line in lines:
-                if url not in line:
-                    f.write(line)
-    except Exception:
-        pass
-
-
-def save_urls_to_file(urls: List[str], filepath: str):
-    with open(filepath, "w", encoding="utf-8") as f:
-        f.write("\n".join(urls))
-
-
-def load_urls_from_file(filepath: str) -> List[str]:
-    with open(filepath, "r", encoding="utf-8") as f:
-        return [line.strip() for line in f if line.strip() and not line.strip().startswith("#")]
+for _k, _v in _mod.__dict__.items():
+    if not _k.startswith("__") or _k in ("__doc__", "__all__"):
+        globals()[_k] = _v
