@@ -103,6 +103,7 @@ class PythonDownloader(DownloaderStrategy):
             'outtmpl': output_path,
             'progress_hooks': [yt_dlp_hook],
             'quiet': True,
+            'concurrent_fragment_downloads': 8,
             'noprogress': True
         }
         if config.cookies_file:
