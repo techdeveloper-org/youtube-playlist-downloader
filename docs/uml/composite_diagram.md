@@ -18,8 +18,15 @@ classDiagram
         yt-dlp (Extractor)
         IDM
     }
+    
+    %% Composition links
     DownloaderSystem *-- UI
     DownloaderSystem *-- CoreLogic
     DownloaderSystem *-- ExternalIntegrations
+    
+    %% Explicit Internal Connectors (Delegation/Data Flow)
+    UI --> CoreLogic : sends user actions / URLs
+    CoreLogic --> UI : updates progress UI
+    CoreLogic --> ExternalIntegrations : dispatches tasks
+    ExternalIntegrations --> CoreLogic : returns extracted info
 ```
-
